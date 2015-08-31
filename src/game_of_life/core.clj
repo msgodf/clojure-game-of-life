@@ -64,8 +64,11 @@
 
 (ann initialise-grid [Integer -> Grid])
 
+;; perhaps a function to take a seed and evolve by a certain number of steps?
+(ann game [Integer -> Grid])
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+;; and a function to print out a grid
+(ann display [Grid -> nil])
+
+;; and a function to run the game from a seed, run it and print out the resulting grid
+(ann run [-> nil])
