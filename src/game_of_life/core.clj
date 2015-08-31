@@ -40,7 +40,7 @@
 
 ;; count of live neighbours - needs a grid and a cell coordinate
 
-(ann number-of-live-neighbours [Grid Coordinate -> Integer])
+(ann number-of-live-neighbours [Grid Coordinate -> Number])
 
 
 ;; we apply the rule at each cell independently, so we need an evolve cell function
@@ -67,8 +67,55 @@
 ;; perhaps a function to take a seed and evolve by a certain number of steps?
 (ann game [Integer -> Grid])
 
+
 ;; and a function to print out a grid
 (ann display [Grid -> nil])
 
 ;; and a function to run the game from a seed, run it and print out the resulting grid
 (ann run [-> nil])
+
+;; another helper type for the print function
+(ann state->string [State -> String])
+
+;; and something I hadn't thought of - predicates for whether a cell is alive or dead
+(ann cell-alive? [State -> Boolean])
+(ann cell-dead? [State -> Boolean])
+
+(defn cell-alive?
+  [state]
+  (if (= state :alive) true false))
+
+(defn cell-dead?
+  [state]
+  (if (= state :dead) true false))
+
+(defn cell-state
+  [grid coordinate]
+  (if-let [value (get grid coordinate)]
+    value
+    (throw (IllegalArgumentException. "Coordinate out of bounds"))))
+
+(defn adjacent-coordinates
+  [coordinate]
+  (typed/for [x :- Integer [-1 0 1]
+              y :- Integer [-1 0 1]] :- Coordinate
+    [x y]))
+
+(defn number-of-live-neighbours
+  [grid coordinate]
+  (count (filter cell-alive?
+                 (map (partial cell-state grid)
+                      (adjacent-coordinates coordinate)))))
+
+(defn evolve-cell
+  [grid coordinate]
+  (if (cell-alive? (cell-state grid coordinate))
+    (condp = (number-of-live-neighbours grid coordinate)
+      0 :dead
+      1 :dead
+      2 :alive
+      3 :alive
+      :dead)
+    (condp = (number-of-live-neighbours grid coordinate)
+      3 :alive
+      :dead)))
