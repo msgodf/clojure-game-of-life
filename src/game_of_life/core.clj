@@ -51,6 +51,19 @@
 
 (ann cell-state [Grid Coordinate -> State])
 
+;; how best to map a function over all cells in the grid?
+;; if it is a function that takes a cell coordinate and state and returns a new state
+
+;; which is pretty much `evolve-cell` - except for should there be a special case where we have state of cell, and state of neighbours and returns a new state?
+
+;;(ann evolve-state [State (typed/Seq State) -> State])
+
+;; but this is a low level function - not very top down - let's stick with top down for now
+
+;; need a function to initialise the grid from a seed value
+
+(ann initialise-grid [Integer -> Grid])
+
 
 (defn foo
   "I don't do a whole lot."
