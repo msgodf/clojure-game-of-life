@@ -32,3 +32,10 @@
                                                                              generate-coordinate))))]
                 (not= (adjacent-coordinates (first coordinates))
                       (adjacent-coordinates (second coordinates)))))
+
+(defspec lone-cell-anywhere-dies-within-one-tick
+  100
+  (prop/for-all [coordinate generate-coordinate]
+                (= :dead
+                   (cell-state (tick {coordinate :alive})
+                               coordinate))))
