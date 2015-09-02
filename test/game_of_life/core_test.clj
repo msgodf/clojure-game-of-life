@@ -24,6 +24,12 @@
                 (= width (find-width (initialise-grid 100 width 10)))))
 
 
+(defspec initialised-grid-with-size-zero-has-only-dead-cells
+  100
+  (prop/for-all [coordinate generate-coordinate]
+                (cell-dead? (cell-state (initialise-grid 100 0 0)
+                                        coordinate))))
+
 (defspec different-coordinates-give-different-neighbours
   100
   (prop/for-all [coordinates (gen/bind generate-coordinate
@@ -33,9 +39,15 @@
                 (not= (adjacent-coordinates (first coordinates))
                       (adjacent-coordinates (second coordinates)))))
 
+(defspec lone-cell-has-no-alive-neighbours
+  100
+  (prop/for-all [coordinate generate-coordinate]
+                (zero? (number-of-live-neighbours {coordinate :alive}
+                                                  coordinate))))
+
 (defspec lone-cell-anywhere-dies-within-one-tick
   100
   (prop/for-all [coordinate generate-coordinate]
-                (= :dead
-                   (cell-state (tick {coordinate :alive})
-                               coordinate))))
+                (cell-dead?
+                 (cell-state (tick {coordinate :alive})
+                             coordinate))))
