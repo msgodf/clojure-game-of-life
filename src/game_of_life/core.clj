@@ -139,15 +139,6 @@
               [(first cell) (evolve-cell grid (first cell))])))
 
 
-(ann first-coordinate
-     [Grid -> (typed/Option Coordinate)])
-
-(defn first-coordinate
-  [grid]
-  (when-let [i (first grid)]
-    (key i)))
-
-
 (ann grid-coordinates [Grid -> (typed/Seq Coordinate)])
 
 (defn grid-coordinates
@@ -168,7 +159,7 @@
 
 (defn y-coordinates
   [coordinates]
-  (map x-coordinate coordinates))
+  (map y-coordinate coordinates))
 
 
 (ann find-width [Grid -> typed/AnyInteger])
