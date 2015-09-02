@@ -112,7 +112,7 @@
 
 (defn coordinate-states->grid
   [coordinate-states]
-  (reduce (typed/ann-form (fn [m kvs] (assoc m (first kvs) (second kvs)))
+  (reduce (typed/ann-form (fn [m [k v]] (assoc m k v))
                           [(typed/Map Coordinate State)
                            (typed/HVec [Coordinate State]) -> (typed/Map Coordinate State)])
           {}
