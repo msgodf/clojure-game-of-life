@@ -169,7 +169,7 @@
   (reduce (typed/ann-form (fn [m v] (if (> m v) m v))
                           [typed/AnyInteger typed/AnyInteger -> typed/AnyInteger])
           0
-          (x-coordinates (grid-coordinates grid))))
+          (map inc (x-coordinates (grid-coordinates grid)))))
 
 
 (ann find-height [Grid -> typed/AnyInteger])
@@ -179,7 +179,7 @@
   (reduce (typed/ann-form (fn [m v] (if (> m v) m v))
                           [typed/AnyInteger typed/AnyInteger -> typed/AnyInteger])
           0
-          (y-coordinates (grid-coordinates grid))))
+          (map inc (y-coordinates (grid-coordinates grid)))))
 
 
 (ann display [Grid -> nil])
