@@ -152,7 +152,7 @@
 
 (defn x-coordinates
   [coordinates]
-  (map y-coordinate coordinates))
+  (map x-coordinate coordinates))
 
 
 (ann y-coordinates [(typed/Seq Coordinate) -> (typed/Seq typed/AnyInteger)])
