@@ -167,8 +167,6 @@
         random-coordinates (random-states seed 0.3 coordinates)]
     (coordinate-states->grid random-coordinates)))
 
-;; now I have a grid structure, need to map over it
-
 (defn tick
   [grid]
   (coordinate-states->grid
@@ -184,6 +182,7 @@
     (key i)))
 
 (ann grid-coordinates [Grid -> (typed/Seq Coordinate)])
+
 (defn grid-coordinates
   [grid]
   (map (typed/ann-form (fn [me] (when me (key me)))
@@ -219,13 +218,12 @@
           0
           (y-coordinates (grid-coordinates grid))))
 
-;; find the maximum x and maximum y (max (map first (keys grid)
 (defn display
   [grid]
   (doall
    (typed/for [y :- typed/AnyInteger (range 0 (inc (find-height grid)))] :- nil
               (prn y (clojure.string/join ""
-                                          (typed/for [x :- typed/AnyInteger (range 0 (find-width grid))] :- String
+                                          (typed/for [x :- typed/AnyInteger (range 0 (inc (find-width grid)))] :- String
                                                      (state->string (cell-state grid [x y])))))))
   nil)
 
