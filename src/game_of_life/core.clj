@@ -9,72 +9,52 @@
 
 (typed/defalias Grid (typed/Map Coordinate State))
 
-
-(ann cell-alive? [State -> Boolean])
-
-(defn cell-alive?
-  [state]
+(typed/defn cell-alive?
+  [state :- State] :- Boolean
   (if (= state :alive) true false))
 
-
-(ann cell-dead? [State -> Boolean])
-
-(defn cell-dead?
-  [state]
+(typed/defn cell-dead?
+  [state :- State] :- Boolean
   (if (= state :dead) true false))
 
-
-(ann cell-state [Grid Coordinate -> State])
-
-(defn cell-state
-  [grid coordinate]
+(typed/defn cell-state
+  [grid :- Grid
+   coordinate :- Coordinate] :- State
   (if-let [value (get grid coordinate)]
     value
     :dead))
 
-
-(ann x-coordinate [Coordinate -> typed/AnyInteger])
-
-(defn x-coordinate
-  [coordinate]
+(typed/defn x-coordinate
+  [coordinate :- Coordinate] :- typed/AnyInteger
   (first coordinate))
 
-
-(ann y-coordinate [Coordinate -> typed/AnyInteger])
-
-(defn y-coordinate
-  [coordinate]
+(typed/defn y-coordinate
+  [coordinate :- Coordinate] :- typed/AnyInteger
   (second coordinate))
 
-
-(ann adjacent-coordinates [Coordinate -> (typed/Seq Coordinate)])
-
-(defn adjacent-coordinates
-  [coordinate]
+(typed/defn adjacent-coordinates
+  [coordinate :- Coordinate] :- (typed/Seq Coordinate)
   (typed/for [x :- Integer [-1 0 1]
-              y :- Integer [-1 0 1] :when (or (not= y 0) (not= x 0))] :- Coordinate
+              y :- Integer [-1 0 1]
+              :when (or (not= y 0) (not= x 0))] :- Coordinate
               [(+ (x-coordinate coordinate) x)
                (+ (y-coordinate coordinate) y)]))
 
-
-(ann number-of-live-neighbours [Grid Coordinate -> Number])
-
-(defn number-of-live-neighbours
-  [grid coordinate]
+(typed/defn number-of-live-neighbours
+  [grid :- Grid
+   coordinate :- Coordinate] :- Number
   (count (filter cell-alive?
                  (map (partial cell-state grid)
                       (adjacent-coordinates coordinate)))))
 
-
-(ann evolve-cell [Grid Coordinate -> State])
-
-(defn evolve-cell
+(typed/defn evolve-cell
   "Rules:
    * Any live cell with fewer than two live neighbours dies, as if caused by under-population.
    * Any live cell with two or three live neighbours lives on to the next generation.
    * Any live cell with more than three live neighbours dies, as if by overcrowding.
    * Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction."
-  [grid coordinate]
+  [grid :- Grid
+   coordinate :- Coordinate] :- State
   (if (cell-alive? (cell-state grid coordinate))
     (condp = (number-of-live-neighbours grid coordinate)
       0 :dead
@@ -86,20 +66,16 @@
       3 :alive
       :dead)))
 
-
-(ann state->string [State -> String])
-
-(defn state->string
-  [state]
+(typed/defn state->string
+  [state :- State] :- String
   (case state
     :alive "O"
     :dead " "))
 
-
-(ann random-states [Integer Number (typed/Seq Coordinate) -> (typed/Seq (typed/HVec [Coordinate State]))])
-
-(defn random-states
-  [seed probability-alive coordinates]
+(typed/defn random-states
+  [seed :- Integer
+   probability-alive :- Number
+   coordinates :- (typed/Seq Coordinate)] :- (typed/Seq (typed/HVec [Coordinate State]))
   (let [rng (java.util.Random. seed)]
     (map (typed/ann-form (fn [coordinate] (if (> probability-alive (.nextDouble rng))
                                             [coordinate :alive]
@@ -107,96 +83,71 @@
                          [Coordinate -> (typed/HVec [Coordinate (typed/U ':alive ':dead)])])
          coordinates)))
 
-
-(ann coordinate-states->grid [(typed/Seq (typed/HVec [Coordinate State])) -> (typed/Map Coordinate State)])
-
-(defn coordinate-states->grid
-  [coordinate-states]
+(typed/defn coordinate-states->grid
+  [coordinate-states :- (typed/Seq (typed/HVec [Coordinate State]))] :- (typed/Map Coordinate State)
   (reduce (typed/ann-form (fn [m [k v]] (assoc m k v))
                           [(typed/Map Coordinate State)
                            (typed/HVec [Coordinate State]) -> (typed/Map Coordinate State)])
           {}
           coordinate-states))
 
+(typed/defn initialise-grid
+  [seed :- Integer
+   width :- typed/AnyInteger
+   height :- typed/AnyInteger] :- Grid
+  (->> (typed/for [x :- typed/AnyInteger (range width)
+                   y :- typed/AnyInteger (range height)] :- Coordinate
+                   [x y])
+       (random-states seed 0.3)
+       (coordinate-states->grid)))
 
-(ann initialise-grid [Integer typed/AnyInteger typed/AnyInteger -> Grid])
-
-(defn initialise-grid
-  [seed width height]
-  (let [coordinates (typed/for [x :- typed/AnyInteger (range width)
-                                y :- typed/AnyInteger (range height)] :- Coordinate
-                                [x y])
-        random-coordinates (random-states seed 0.3 coordinates)]
-    (coordinate-states->grid random-coordinates)))
-
-
-(ann tick [Grid -> Grid])
-
-(defn tick
-  [grid]
+(typed/defn tick
+  [grid :- Grid] :- Grid
   (coordinate-states->grid
    (typed/for [cell :- (typed/HVec [Coordinate State]) grid] :- (typed/HVec [Coordinate State])
               [(first cell) (evolve-cell grid (first cell))])))
 
-
-(ann grid-coordinates [Grid -> (typed/Seq Coordinate)])
-
-(defn grid-coordinates
-  [grid]
+(typed/defn grid-coordinates
+  [grid :- Grid] :- (typed/Seq Coordinate)
   (map (typed/ann-form (fn [me] (when me (key me)))
                        [(clojure.lang.IMapEntry Coordinate State) -> Coordinate])
        grid))
 
-
-(ann x-coordinates [(typed/Seq Coordinate) -> (typed/Seq typed/AnyInteger)])
-
-(defn x-coordinates
-  [coordinates]
+(typed/defn x-coordinates
+  [coordinates :- (typed/Seq Coordinate)] :- (typed/Seq typed/AnyInteger)
   (map x-coordinate coordinates))
 
-
-(ann y-coordinates [(typed/Seq Coordinate) -> (typed/Seq typed/AnyInteger)])
-
-(defn y-coordinates
-  [coordinates]
+(typed/defn y-coordinates
+  [coordinates :- (typed/Seq Coordinate)] :- (typed/Seq typed/AnyInteger)
   (map y-coordinate coordinates))
 
-
-(ann find-width [Grid -> typed/AnyInteger])
-
-(defn find-width
-  [grid]
+(typed/defn find-width
+  [grid :- Grid] :- typed/AnyInteger
   (reduce (typed/ann-form (fn [m v] (if (> m v) m v))
                           [typed/AnyInteger typed/AnyInteger -> typed/AnyInteger])
           0
           (map inc (x-coordinates (grid-coordinates grid)))))
 
-
-(ann find-height [Grid -> typed/AnyInteger])
-
-(defn find-height
-  [grid]
+(typed/defn find-height
+  [grid :- Grid] :- typed/AnyInteger
   (reduce (typed/ann-form (fn [m v] (if (> m v) m v))
                           [typed/AnyInteger typed/AnyInteger -> typed/AnyInteger])
           0
           (map inc (y-coordinates (grid-coordinates grid)))))
 
-
-(ann display [Grid -> nil])
-
-(defn display
-  [grid]
+(typed/defn display
+  [grid :- Grid] :- nil
   (doall
    (typed/for [y :- typed/AnyInteger (range 0 (inc (find-height grid)))] :- nil
               (prn (clojure.string/join ""
-                                          (typed/for [x :- typed/AnyInteger (range 0 (inc (find-width grid)))] :- String
-                                                     (state->string (cell-state grid [x y])))))))
+                                        (typed/for [x :- typed/AnyInteger (range 0 (inc (find-width grid)))] :- String
+                                                   (state->string (cell-state grid [x y])))))))
   nil)
 
-(ann game [Integer Integer Boolean -> (typed/Option Grid)])
-
-(defn game
-  [seed steps display?]
+(typed/defn game
+  [seed :- Integer
+   steps :- Integer
+   display? :- Boolean] :- (typed/Option Grid)
   (last (take steps
               (iterate (typed/ann-form (fn [grid] (when display?
                                                     (display grid)
@@ -204,10 +155,7 @@
                                        [Grid -> Grid])
                        (initialise-grid seed 20 20)))))
 
-
-(ann run [-> nil])
-
-(defn run
-  []
+(typed/defn run
+  [] :- nil
   (game 10006 10 true)
   nil)
