@@ -1,5 +1,6 @@
 (ns game-of-life.core
-  (:require [clojure.core.typed :refer [ann] :as typed]))
+  (:require [clojure.core.typed :refer [ann] :as typed]
+            [clojure.string :as str]))
 
 ;;Rules:
 ;;
@@ -20,7 +21,7 @@
 
 ;; then a rule gets fed the cell and its neighbours, and produces a new state for the cell
 
-(typed/defalias Coordinate (typed/HVec [Integer Integer]))
+(typed/defalias Coordinate (typed/HVec [typed/AnyInteger typed/AnyInteger]))
 
 (typed/defalias State (typed/U ':alive
                                ':dead))
@@ -62,10 +63,10 @@
 
 ;; need a function to initialise the grid from a seed value
 
-(ann initialise-grid [Integer -> Grid])
+(ann initialise-grid [Integer typed/AnyInteger typed/AnyInteger -> Grid])
 
 ;; perhaps a function to take a seed and evolve by a certain number of steps?
-(ann game [Integer -> Grid])
+(ann game [Integer Integer Boolean -> (typed/Option Grid)])
 
 
 ;; and a function to print out a grid
@@ -93,13 +94,24 @@
   [grid coordinate]
   (if-let [value (get grid coordinate)]
     value
-    (throw (IllegalArgumentException. "Coordinate out of bounds"))))
+    :dead))
+
+(ann x-coordinate [Coordinate -> typed/AnyInteger])
+(defn x-coordinate
+  [coordinate]
+  (first coordinate))
+
+(ann y-coordinate [Coordinate -> typed/AnyInteger])
+(defn y-coordinate
+  [coordinate]
+  (second coordinate))
 
 (defn adjacent-coordinates
   [coordinate]
   (typed/for [x :- Integer [-1 0 1]
-              y :- Integer [-1 0 1]] :- Coordinate
-    [x y]))
+              y :- Integer [-1 0 1] :when (or (not= y 0) (not= x 0))] :- Coordinate
+              [(+ (x-coordinate coordinate) x)
+               (+ (y-coordinate coordinate) y)]))
 
 (defn number-of-live-neighbours
   [grid coordinate]
@@ -119,3 +131,134 @@
     (condp = (number-of-live-neighbours grid coordinate)
       3 :alive
       :dead)))
+
+(defn state->string
+  [state]
+  (case state
+    :alive "O"
+    :dead " "))
+
+(ann random-states [Integer Number (typed/Seq Coordinate) -> (typed/Seq (typed/HVec [Coordinate State]))])
+
+(defn random-states
+  [seed probability-alive coordinates]
+  (let [rng (java.util.Random. seed)]
+    (map (typed/ann-form (fn [coordinate] (if (> probability-alive (.nextDouble rng))
+                                            [coordinate :alive]
+                                            [coordinate :dead]))
+                         [Coordinate -> (typed/HVec [Coordinate (typed/U ':alive ':dead)])])
+         coordinates)))
+
+(ann coordinate-states->grid [(typed/Seq (typed/HVec [Coordinate State])) -> (typed/Map Coordinate State)])
+
+(defn coordinate-states->grid
+  [coordinate-states]
+  (reduce (typed/ann-form (fn [m kvs] (assoc m (first kvs) (second kvs)))
+                          [(typed/Map Coordinate State)
+                           (typed/HVec [Coordinate State]) -> (typed/Map Coordinate State)])
+          {}
+          coordinate-states))
+
+(defn initialise-grid
+  [seed width height]
+  (let [coordinates (typed/for [x :- typed/AnyInteger (range width)
+                                y :- typed/AnyInteger (range height)] :- Coordinate
+                                [x y])
+        random-coordinates (random-states seed 0.3 coordinates)]
+    (coordinate-states->grid random-coordinates)))
+
+;; now I have a grid structure, need to map over it
+
+(defn tick
+  [grid]
+  (coordinate-states->grid
+   (typed/for [cell :- (typed/HVec [Coordinate State]) grid] :- (typed/HVec [Coordinate State])
+              [(first cell) (evolve-cell grid (first cell))])))
+
+(ann first-coordinate
+     [Grid -> (typed/Option Coordinate)])
+
+(defn first-coordinate
+  [grid]
+  (when-let [i (first grid)]
+    (key i)))
+
+(ann grid-coordinates [Grid -> (typed/Seq Coordinate)])
+(defn grid-coordinates
+  [grid]
+  (map (typed/ann-form (fn [me] (when me (key me)))
+                       [(clojure.lang.IMapEntry Coordinate State) -> Coordinate])
+       grid))
+
+(ann x-coordinates [(typed/Seq Coordinate) -> (typed/Seq typed/AnyInteger)])
+
+(defn x-coordinates
+  [coordinates]
+  (map y-coordinate coordinates))
+
+(ann y-coordinates [(typed/Seq Coordinate) -> (typed/Seq typed/AnyInteger)])
+
+(defn y-coordinates
+  [coordinates]
+  (map x-coordinate coordinates))
+
+(ann find-width [Grid -> typed/AnyInteger])
+(defn find-width
+  [grid]
+  (reduce (typed/ann-form (fn [m v] (if (> m v) m v))
+                          [typed/AnyInteger typed/AnyInteger -> typed/AnyInteger])
+          0
+          (x-coordinates (grid-coordinates grid))))
+
+(ann find-height [Grid -> typed/AnyInteger])
+
+(defn find-height
+  [grid]
+  (reduce (typed/ann-form (fn [m v] (if (> m v) m v))
+                          [typed/AnyInteger typed/AnyInteger -> typed/AnyInteger])
+          0
+          (y-coordinates (grid-coordinates grid))))
+
+;; find the maximum x and maximum y (max (map first (keys grid)
+(defn display
+  [grid]
+  (doall
+   (typed/for [y :- typed/AnyInteger (range 0 (inc (find-height grid)))] :- nil
+              (prn y (clojure.string/join ""
+                                          (typed/for [x :- typed/AnyInteger (range 0 (find-width grid))] :- String
+                                                     (state->string (cell-state grid [x y])))))))
+  nil)
+
+(defn game
+  [seed steps display?]
+  (last (take steps
+              (iterate (typed/ann-form (fn [grid] (when display?
+                                                    (display grid)
+                                                    (println "\n\n\n")) (tick grid))
+                                       [Grid -> Grid])
+                       (initialise-grid seed 20 20)))))
+
+(defn run
+  []
+  (game 10006 10 true)
+  nil)
+
+;; I just thought - one defining feature of the grid is its bounds!
+;; plus the structure has several options - but doesn't need to be exposed (abstract)
+;; one obvious representation is where the state at all coordinates in the grid is stored explicitly
+;; i.e. for all coordinates in the bounds of the grid (i.e. x in [min_x,max_x] and y in [min_y,max_y] there is a stored state
+;; and the other obvious representation is where we partition the coordinates into dead or alive.
+;; the trade offs are around time of lookup and modification of the grid, and space taken for the state of the cells
+
+;; so the grid has some other parameters, namely the width and height (assuming a rectangular grid).
+
+;; but this can just be part of the internal structure of the grid
+
+
+;; I've learned about core.typed/AnyInteger - which is what (range) uses, instead of Integer
+
+
+;; Bugs that occurred:
+;; When trying to get the type of adjacent-coordinates right, I removed the part that added the offset to the specified coordinate - so it always returned the same set of adjacent coordinates! This is a variant that should have been tested. No evolution occurred, because of this bug.
+;; A bigger bug occurred in that I wasn't removing the center coordinate from the adjacent coordinates! So nine coordinates were being returned.
+;; my initial (intuitive) fix for this in the for expression also didn't work!
