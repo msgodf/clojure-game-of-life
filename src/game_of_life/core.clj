@@ -35,10 +35,10 @@
 (t/defn adjacent-coordinates
   [coordinate :- Coordinate] :- (t/Seq Coordinate)
   (t/for [x :- Integer [-1 0 1]
-              y :- Integer [-1 0 1]
-              :when (or (not= y 0) (not= x 0))] :- Coordinate
-              [(+ (x-coordinate coordinate) x)
-               (+ (y-coordinate coordinate) y)]))
+          y :- Integer [-1 0 1]
+          :when (or (not= y 0) (not= x 0))] :- Coordinate
+          [(+ (x-coordinate coordinate) x)
+           (+ (y-coordinate coordinate) y)]))
 
 (t/defn number-of-live-neighbours
   [grid :- Grid
