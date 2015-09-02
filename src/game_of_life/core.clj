@@ -121,19 +121,28 @@
   [coordinates :- (t/Seq Coordinate)] :- (t/Seq t/AnyInteger)
   (map y-coordinate coordinates))
 
-(t/defn find-width
-  [grid :- Grid] :- t/AnyInteger
+(t/defn max-any-integer
+  [xs :- (t/Seq t/AnyInteger)] :- t/AnyInteger
   (reduce (t/ann-form (fn [m v] (if (> m v) m v))
                           [t/AnyInteger t/AnyInteger -> t/AnyInteger])
           0
-          (map inc (x-coordinates (grid-coordinates grid)))))
+          xs))
+
+(t/defn find-width
+  [grid :- Grid] :- t/AnyInteger
+  (->> grid
+       (grid-coordinates)
+       (x-coordinates)
+       (map inc)
+       (max-any-integer)))
 
 (t/defn find-height
   [grid :- Grid] :- t/AnyInteger
-  (reduce (t/ann-form (fn [m v] (if (> m v) m v))
-                          [t/AnyInteger t/AnyInteger -> t/AnyInteger])
-          0
-          (map inc (y-coordinates (grid-coordinates grid)))))
+  (->> grid
+       (grid-coordinates)
+       (y-coordinates)
+       (map inc)
+       (max-any-integer)))
 
 (t/defn display
   [grid :- Grid] :- nil
