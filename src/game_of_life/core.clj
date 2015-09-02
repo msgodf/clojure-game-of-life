@@ -222,7 +222,7 @@
   [grid]
   (doall
    (typed/for [y :- typed/AnyInteger (range 0 (inc (find-height grid)))] :- nil
-              (prn y (clojure.string/join ""
+              (prn (clojure.string/join ""
                                           (typed/for [x :- typed/AnyInteger (range 0 (inc (find-width grid)))] :- String
                                                      (state->string (cell-state grid [x y])))))))
   nil)
