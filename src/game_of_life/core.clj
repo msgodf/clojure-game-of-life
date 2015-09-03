@@ -5,7 +5,7 @@
 (t/defalias Coordinate (t/HVec [t/AnyInteger t/AnyInteger]))
 
 (t/defalias State (t/U ':alive
-                               ':dead))
+                       ':dead))
 
 (t/defalias Grid (t/Map Coordinate State))
 
@@ -43,9 +43,11 @@
 (t/defn number-of-live-neighbours
   [grid :- Grid
    coordinate :- Coordinate] :- Number
-  (count (filter cell-alive?
-                 (map (partial cell-state grid)
-                      (adjacent-coordinates coordinate)))))
+  (->> coordinate
+       (adjacent-coordinates)
+       (map (partial cell-state grid))
+       (filter cell-alive?)
+       (count)))
 
 (t/defn evolve-cell
   "Rules:
@@ -124,7 +126,7 @@
 (t/defn max-any-integer
   [xs :- (t/Seq t/AnyInteger)] :- t/AnyInteger
   (reduce (t/ann-form (fn [m v] (if (> m v) m v))
-                          [t/AnyInteger t/AnyInteger -> t/AnyInteger])
+                      [t/AnyInteger t/AnyInteger -> t/AnyInteger])
           0
           xs))
 
@@ -148,21 +150,22 @@
   [grid :- Grid] :- nil
   (doall
    (t/for [y :- t/AnyInteger (range 0 (inc (find-height grid)))] :- nil
-              (prn (clojure.string/join ""
-                                        (t/for [x :- t/AnyInteger (range 0 (inc (find-width grid)))] :- String
-                                                   (state->string (cell-state grid [x y])))))))
+          (prn (clojure.string/join ""
+                                    (t/for [x :- t/AnyInteger (range 0 (inc (find-width grid)))] :- String
+                                           (state->string (cell-state grid [x y])))))))
   nil)
 
 (t/defn game
   [seed :- Integer
    steps :- Integer
    display? :- Boolean] :- (t/Option Grid)
-  (last (take steps
-              (iterate (t/ann-form (fn [grid] (when display?
-                                                    (display grid)
-                                                    (println "\n\n\n")) (tick grid))
-                                       [Grid -> Grid])
-                       (initialise-grid seed 20 20)))))
+  (->> (initialise-grid seed 20 20)
+       (iterate (t/ann-form (fn [grid] (when display?
+                                         (display grid)
+                                         (println "\n\n\n")) (tick grid))
+                            [Grid -> Grid]))
+       (take steps)
+       (last)))
 
 (t/defn run
   [] :- nil
